@@ -3,8 +3,8 @@ from plot import *
 
 TAXA_MUTACAO = 0.01
 TAXA_CRUZAMENTO = 0.9
-TAMANHO_POPULACAO = 200
-NUMERO_GERACOES = 1000
+TAMANHO_POPULACAO = 50
+NUMERO_GERACOES = 300
 
 
 class no:
@@ -22,7 +22,7 @@ class no:
 
     def aindaTemVizinhosForaDessaLista(self, lista):
         for vizinho in self.vizinhos:
-            if not lista.__contains__(vizinho):
+            if vizinho not in lista:
                 return True
         return False
 
@@ -38,7 +38,6 @@ class grafo:
         for i in range(0, len(self.grafo)):
             if x == self.grafo[i].x and y == self.grafo[i].y:
                 return i
-
         return None
 
     def ligarNos(self, x1, y1, x2, y2):
@@ -46,18 +45,15 @@ class grafo:
         indexNoUm = self.posicao(x1, y1)
         indexNoDois = self.posicao(x2, y2)
 
-        if not indexNoUm:
-            no1 = no(x1, y1)
-            self.grafo.append(no1)
-        else:
-            no1 = self.grafo[indexNoUm]
-        if not indexNoDois:
-            no2 = no(x2, y2)
-            self.grafo.append(no2)
-        else:
-            no2 = self.grafo[indexNoDois]
+        if indexNoUm is None:
+            self.grafo = self.grafo + [no(x1, y1)]
+            indexNoUm = len(self.grafo)-1
 
-        no1.addVizinho(no2)
+        if indexNoDois is None:
+            self.grafo = self.grafo + [no(x2, y2)]
+            indexNoDois = len(self.grafo)-1
+
+        self.grafo[indexNoUm].addVizinho(self.grafo[indexNoDois])
 
 
 # Cria o Grafo
@@ -74,7 +70,7 @@ grafo.ligarNos(78, 262, 139, 262)
 grafo.ligarNos(139, 262, 139, 106)
 grafo.ligarNos(78, 262, 176, 262)
 grafo.ligarNos(176, 262, 176, 418)
-grafo.ligarNos(78, 421, 176, 418)
+grafo.ligarNos(176, 418, 78, 421)
 grafo.ligarNos(176, 262, 217, 262)
 grafo.ligarNos(217, 262, 217, 106)
 grafo.ligarNos(139, 106, 217, 106)
@@ -104,34 +100,22 @@ class cromossomo:
     def __init__(self, caminho=[]):
         self.caminho = caminho if caminho != [] else self.criarAletorio(INICIO, FINAL)
 
-
     def criarAletorio(self, inicio, final):
         if inicio == final:
             return [inicio]
-        noAtual = inicio
-        caminhoAleatorio = [noAtual]
 
-        while noAtual != final:
-            proximoNo = noAtual.vizinhoAleatorio()
-            caminhoAleatorio.append(proximoNo)
-            noAtual = proximoNo
+        visitados = [inicio]
+        caminhoAleatorio = [inicio]
 
+        while caminhoAleatorio[-1] != final:
+            while not caminhoAleatorio[-1].aindaTemVizinhosForaDessaLista(visitados):
+                caminhoAleatorio.pop()
+            proximoNo = caminhoAleatorio[-1].vizinhoAleatorio()
+            while proximoNo in visitados:
+                proximoNo = caminhoAleatorio[-1].vizinhoAleatorio()
+            caminhoAleatorio = caminhoAleatorio + [proximoNo]
+            visitados = visitados + [proximoNo]
         return caminhoAleatorio
-
-    # def criarAletorio(self, inicio, final):
-    #     if inicio == final:
-    #         return [inicio]
-    #     noAtual = inicio
-    #     caminhoAleatorio = [noAtual]
-    #     while noAtual != final and noAtual.aindaTemVizinhosForaDessaLista(caminhoAleatorio):
-    #         proximoNo = noAtual.vizinhoAleatorio()
-    #         while caminhoAleatorio.__contains__(proximoNo):
-    #             proximoNo = noAtual.vizinhoAleatorio()
-    #         noAtual = proximoNo
-    #         caminhoAleatorio = caminhoAleatorio + [noAtual]
-    #     if caminhoAleatorio[-1] != final:
-    #         return self.criarAletorio(inicio, final)
-    #     return caminhoAleatorio
 
     def mutacao(self):
         inicial = random.randint(0, len(self.caminho) - 1)
@@ -153,8 +137,8 @@ class cromossomo:
     def fitness(self):
         custo = 0
         for i in range(0, len(self.caminho) - 1):
-            custo += ((self.caminho[i].x - self.caminho[i + 1].x) ** 2 + (
-                        self.caminho[i].y - self.caminho[i + 1].y) ** 2) ** 0.5
+            custo += ((self.caminho[i].x - self.caminho[i + 1].x)**2 + (
+                        self.caminho[i].y - self.caminho[i + 1].y)**2)**0.5
         return custo
 
     def __repr__(self):
@@ -170,7 +154,7 @@ def torneio(populacao):
         disputa = [populacao[candidatoUm], populacao[candidatoDois], populacao[candidatoTres]]
         disputa = sorted(disputa, key=lambda cromossomo: cromossomo.fitness())
 
-        novaPopulacao.append(disputa[0])
+        novaPopulacao = novaPopulacao + [disputa[0]]
 
     return novaPopulacao
 
@@ -200,22 +184,22 @@ populacao = [cromossomo() for i in range(0, TAMANHO_POPULACAO)]
 
 geracao = 0
 
-while geracao < NUMERO_GERACOES:
+while geracao < NUMERO_GERACOES and coeficienteDeVariancia(populacao) < 0.000001:
     geracao += 1
+
+    for i in populacao:
+        print(i)
     populacao = torneio(populacao)
-    # print(populacao)
     novaGeracao = []
     for i in range(TAMANHO_POPULACAO):
         if random.random() < TAXA_CRUZAMENTO:
             pai = random.randint(0, len(populacao) - 1)
             mae = random.randint(0, len(populacao) - 1)
-            # print('pai',pai,populacao[pai])
-            # print(mae,populacao[mae])
             while mae == pai:
                 mae = random.randint(0, len(populacao) - 1)
             filhoUm, filhoDois = populacao[pai].cruzamento(populacao[mae])
-            novaGeracao.append(filhoUm)
-            novaGeracao.append(filhoDois)
+            novaGeracao = novaGeracao + [filhoUm]
+            novaGeracao = novaGeracao + [filhoDois]
 
     for novoIndividuo in novaGeracao:
         if random.random() < TAXA_MUTACAO:
@@ -223,7 +207,6 @@ while geracao < NUMERO_GERACOES:
 
     populacao = elitismo(populacao + novaGeracao, TAMANHO_POPULACAO)
 
-    print("Geração: ", geracao)
 
 plot(populacao[0].caminho, grafo.grafo)
 
