@@ -68,7 +68,6 @@ grafo = grafo()
 grafo.ligarNos(78, 421, 78, 262)
 grafo.ligarNos(78, 262, 139, 262)
 grafo.ligarNos(139, 262, 139, 106)
-grafo.ligarNos(78, 262, 176, 262)
 grafo.ligarNos(176, 262, 176, 418)
 grafo.ligarNos(176, 418, 78, 421)
 grafo.ligarNos(176, 262, 217, 262)
@@ -174,7 +173,7 @@ def coeficienteDeVariancia(populacao):
     for individuo in populacao:
         desvioPadrao += (media - individuo.fitness()) ** 2
     desvioPadrao /= (tamanho - 1)
-    desvioPadrao = (desvioPadrao) ** 0.5
+    desvioPadrao = desvioPadrao ** 0.5
     cv = desvioPadrao / abs(media)
 
     return cv
@@ -184,7 +183,7 @@ populacao = [cromossomo() for i in range(0, TAMANHO_POPULACAO)]
 
 geracao = 0
 
-while geracao < NUMERO_GERACOES and coeficienteDeVariancia(populacao) < 0.000001:
+while geracao < NUMERO_GERACOES and coeficienteDeVariancia(populacao) > 0.001:
     geracao += 1
 
     for i in populacao:
@@ -207,6 +206,8 @@ while geracao < NUMERO_GERACOES and coeficienteDeVariancia(populacao) < 0.000001
 
     populacao = elitismo(populacao + novaGeracao, TAMANHO_POPULACAO)
 
+print("final: ", populacao[0].caminho)
 
 plot(populacao[0].caminho, grafo.grafo)
+
 
